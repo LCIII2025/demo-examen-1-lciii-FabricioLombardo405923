@@ -55,6 +55,12 @@ public class MatchServiceImpl implements MatchService {
         Optional<List<MatchEntity>> matchEntityList = matchJpaRepository.getAllByPlayerIdAndMatchStatus(playerId, MatchStatus.FINISH);
         if(matchEntityList.isPresent()) {
             // TODO: Recorrer la lista y mapear el objeto
+
+            for(int i = 0; matchEntityList.stream().count() > i; i++){
+                MatchEntity mach = matchEntityList.get().get(i);
+                MatchResponseDTO dto= modelMapper.map(mach, MatchResponseDTO.class);
+               matches.add(dto);
+            }
             return matches;
         } else {
             throw new EntityNotFoundException("The player do not have matches finished");
@@ -115,16 +121,39 @@ public class MatchServiceImpl implements MatchService {
 
         // 1
         Match match = this.getMatchById(matchId);
+        if(match == null){
+            throw new EntityNotFoundException(String.format("The match id {matchId} not found"));
+        }
 
         // 2
+       Long playerid = newMatchRoundRequestDTO.getPlayerId();
+        Player player = playerService.getPlayerById(playerid);
+       List<MatchResponseDTO> matchesByPlayer = getMatchesByPlayer(playerid);
+       for (int i = 0; matchesByPlayer.size() > i; i++){
+           MatchResponseDTO item = matchesByPlayer.get(i);
+           MatchResponseDTO dto= modelMapper.map(match, MatchResponseDTO.class);
+           if(dto.equals(item)){
+               break;
+           }
+           if (matchesByPlayer.size() > i){
+               throw new EntityNotFoundException(String.format("The match id {matchId} does not belong to player {playerId}"));
+           }
+       }
 
         // 3
         List<Round> roundsUnfinished = roundService.getUnfinishedRounds(matchId);
         if(!roundsUnfinished.isEmpty()) {
             return modelMapper.map(roundsUnfinished.get(0), RoundResponseDTO.class);
         }
+        else {
+            return modelMapper.map(roundsUnfinished.getFirst(), RoundResponseDTO.class);
+        }
 
-        // 4
+        //4
+        if(player.getBalanceChips() < CHIPS_PER_ROUND){
+
+        }
+
 
         // 5 ------INICIO--------
         Round round = new Round();
